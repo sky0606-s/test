@@ -2,8 +2,7 @@
 // 画像4択クイズ（50問をランダム順で全問出題）
 // - data.json から { id, image, choices[4], correct } を読み込み
 // - correct は 'ア' | 'イ' | 'ウ' | 'エ' いずれか
-//   ※ 互換: answerIndex(0-3) or img プロパティも許容
-// - クリックすると 〇/× を表示し自動で次へ
+// - ×のときは 画像下のカードに「正解は ○（本文）」を表示
 // =====================================================
 
 const LABELS = ['ア', 'イ', 'ウ', 'エ'];
@@ -17,7 +16,8 @@ const els = {
   result: document.getElementById('result'),
   finalScore: document.getElementById('finalScore'),
   restartBtn: document.getElementById('restartBtn'),
-  skipBtn: document.getElementById('skipBtn')
+  skipBtn: document.getElementById('skipBtn'),
+  answerBar: document.getElementById('answerBar')
 };
 
 // フォールバック（data.json が読み込めない場合の最少テストデータ）
@@ -32,68 +32,57 @@ const fallbackData = [
     id: 2,
     image: "images/q02.jpg",
     choices: ["りんご", "みかん", "バナナ", "ぶどう"],
-    correct: "ウ" // 例: バナナ
+    correct: "ウ"
   },
   {
     id: 3,
     image: "images/q03.jpg",
-    choices: ["HTTP:80", "HTTPS:443", "FTP:22", "SMTP:110"],
-    correct: "イ" // 例: HTTPS:443
+    choices: ["HTTP:80", "HTTPS:443", "FTP:21", "SMTP:25"],
+    correct: "イ"
   }
 ];
 
-let QUESTIONS = [];       // data.json 読み込み済み
-let order = [];           // 出題順（シャッフル）
-let index = 0;            // 現在の出題ポインタ
-let score = 0;            // 正解数
-let lock = false;         // 二重連打防止
+let QUESTIONS = [];
+let order = [];
+let index = 0;
+let score = 0;
+let lock = false;
 
 init();
 
 async function init(){
-  // data.json をロード
   try{
     const res = await fetch('data.json', { cache: 'no-store' });
     if(!res.ok) throw new Error('failed');
     const data = await res.json();
 
-    // データ整形：プロパティ名の揺れを許容
     QUESTIONS = data.map(normalizeQuestion);
-
-    // 最低限のバリデーション
     if(!Array.isArray(QUESTIONS) || QUESTIONS.length === 0){
       throw new Error('empty');
     }
   }catch(e){
-    // フォールバック
     console.warn('data.json の読み込みに失敗したため、サンプルデータで起動します。', e);
     QUESTIONS = fallbackData.map(normalizeQuestion);
   }
 
-  // 50問を想定。データ数に合わせて動作します
   resetGame();
 
-  // UIイベント
   els.restartBtn.addEventListener('click', () => resetGame());
   els.skipBtn.addEventListener('click', () => nextQuestion());
   window.addEventListener('keydown', handleKey);
 }
 
 function normalizeQuestion(raw){
-  // image/img どちらでもOK
   const image = raw.image || raw.img || '';
-  // choices は 4件に整形
   let choices = raw.choices || [];
   if(!Array.isArray(choices)) choices = [];
   choices = [...choices];
   while(choices.length < 4) choices.push('（未設定）');
 
-  // 正解は correct(ア/イ/ウ/エ) or answerIndex(0..3)
   let correct = raw.correct;
   if(!correct && typeof raw.answerIndex === 'number'){
     correct = LABELS[raw.answerIndex] ?? 'ア';
   }
-  // 念のため不正値ガード
   if(!LABELS.includes(correct)) correct = 'ア';
 
   return {
@@ -111,6 +100,8 @@ function resetGame(){
   order = shuffle([...Array(QUESTIONS.length).keys()]);
   els.result.hidden = true;
   els.skipBtn.disabled = false;
+  hideMark();
+  hideAnswer();
   updateHUD();
   render();
 }
@@ -128,26 +119,24 @@ function render(){
 
   const q = QUESTIONS[order[index]];
 
-  // 画像
   els.img.src = q.image;
   els.img.alt = `問題画像 ${q.id ?? index+1}`;
-  // 選択肢
+
   els.choices.innerHTML = '';
   q.choices.forEach((text, i) => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'choice';
     btn.dataset.key = LABELS[i];
-
     btn.innerHTML = `
       <span class="badge">${LABELS[i]}</span>
       <span class="text">${escapeHTML(text || '（未設定）')}</span>
     `;
-
     btn.addEventListener('click', () => choose(btn, q));
     els.choices.appendChild(btn);
   });
 
+  hideAnswer(); // 新しい問題に切り替わるたびに下部の答えを消す
   updateHUD();
 }
 
@@ -155,28 +144,33 @@ function choose(btn, q){
   if(lock) return;
   lock = true;
 
-  const picked = btn.dataset.key;           // 'ア' | 'イ' | 'ウ' | 'エ'
+  const picked = btn.dataset.key;
   const isCorrect = picked === q.correct;
+  const correctIdx = LABELS.indexOf(q.correct);
+  const correctText = q.choices[correctIdx] ?? '';
 
   // 視覚フィードバック（ボタン）
   btn.classList.add(isCorrect ? 'correct' : 'wrong');
 
-  // 〇×オーバーレイ
+  // 〇×オーバーレイ（テキストは出さない）
   showMark(isCorrect);
 
-  // スコア、読み上げ
+  // 不正解時は画像の下に正解を表示
   if(isCorrect){
     score++;
+    hideAnswer();
     els.live.textContent = '正解';
   }else{
-    els.live.textContent = '不正解';
+    showAnswer(q.correct, correctText); // ← ここで下部カードに表示
+    els.live.textContent = `不正解。正解は${q.correct}：${correctText}`;
   }
   updateHUD();
 
-  // 少し待って次の問題へ
+  // 次の問題へ（×のときは少し長め）
+  const delay = isCorrect ? 800 : 1600;
   setTimeout(() => {
     nextQuestion();
-  }, 800);
+  }, delay);
 }
 
 function nextQuestion(){
@@ -192,6 +186,7 @@ function finish(){
   els.result.hidden = false;
   els.finalScore.textContent = `正解数：${score} / ${QUESTIONS.length}`;
   els.live.textContent = '終了';
+  hideAnswer();
 }
 
 function showMark(ok){
@@ -203,6 +198,19 @@ function hideMark(){
   els.mark.innerHTML = '';
 }
 
+// ==== 画像下の正解カード ====
+function showAnswer(label, text){
+  els.answerBar.hidden = false;
+  els.answerBar.classList.remove('ok','ng');
+  els.answerBar.classList.add('ng'); // 今回は不正解時のみ出す仕様
+  els.answerBar.innerHTML = `正解は <span class="badge">${label}</span><span class="ct">${escapeHTML(text)}</span>`;
+}
+function hideAnswer(){
+  els.answerBar.hidden = true;
+  els.answerBar.classList.remove('ok','ng');
+  els.answerBar.textContent = '';
+}
+
 function shuffle(arr){
   for(let i = arr.length - 1; i > 0; i--){
     const j = Math.floor(Math.random() * (i + 1));
@@ -212,7 +220,6 @@ function shuffle(arr){
 }
 
 function handleKey(e){
-  // 1〜4 または A/I/U/E の頭文字（日本語配列でも対応しづらいので数値推奨）
   if(e.key >= '1' && e.key <= '4'){
     const idx = Number(e.key) - 1;
     const btn = els.choices.children[idx];
