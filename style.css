@@ -1,0 +1,138 @@
+/* ===== Reset (最小限) ===== */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+img { max-width: 100%; display: block; }
+
+/* ===== Theme ===== */
+:root{
+  --bg: #f6f7fb;
+  --panel: #ffffff;
+  --text: #0f1222;
+  --muted: #62708a;
+  --brand: #2b6cff;
+  --ok: #1fb26b;
+  --ng: #e54848;
+  --shadow: 0 10px 30px rgba(0,0,0,.08);
+  --radius: 18px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1420; --panel:#141a28; --text:#e7ecff; --muted:#a4b0c9;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+}
+
+body{
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Noto Sans JP", sans-serif;
+  line-height: 1.6;
+}
+
+.app-header, .app-footer{
+  max-width: 960px; margin: 0 auto; padding: 16px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.app-header h1{ font-size: 20px; margin: 0; }
+.app-header .meta{ display: flex; gap: 12px; color: var(--muted); }
+
+.app{
+  max-width: 960px; margin: 0 auto; padding: 16px 20px 32px;
+  display: grid; gap: 20px;
+}
+
+/* 画像 */
+.image-wrap{
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px;
+  position: relative;
+}
+#questionImage{
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: contain;
+  background: linear-gradient(180deg, rgba(0,0,0,.03), rgba(0,0,0,.06));
+  border-radius: 12px;
+}
+
+/* 〇× オーバーレイ */
+#markOverlay{
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  pointer-events: none; opacity: 0; transform: scale(.9);
+  transition: opacity .18s ease, transform .18s ease;
+  border-radius: var(--radius);
+}
+#markOverlay.show{ opacity: 1; transform: scale(1); }
+#markOverlay .mark{
+  font-size: clamp(72px, 16vw, 160px);
+  line-height: 1;
+  font-weight: 900;
+  text-shadow: 0 6px 18px rgba(0,0,0,.25);
+}
+#markOverlay.ok{ background: rgba(31,178,107,.08); }
+#markOverlay.ok .mark{ color: var(--ok); }
+#markOverlay.ng{ background: rgba(229,72,72,.08); }
+#markOverlay.ng .mark{ color: var(--ng); }
+
+/* 選択肢 */
+.choices{
+  display: grid; gap: 12px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px){
+  .choices{ grid-template-columns: 1fr 1fr; }
+}
+.choice{
+  display: flex; align-items: center; gap: 12px;
+  background: var(--panel);
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  font-size: 16px;
+  text-align: left;
+  transition: border-color .15s ease, transform .04s ease;
+}
+.choice:active{ transform: translateY(1px); }
+.choice:hover, .choice:focus-visible{ border-color: rgba(43,108,255,.35); outline: none; }
+.choice .badge{
+  min-width: 2.2em; height: 2.2em; border-radius: 999px;
+  display: grid; place-items: center; font-weight: 700;
+  background: rgb(136, 255, 0);
+}
+
+/* 正誤の色付け（押した直後の一瞬だけ） */
+.choice.correct{ border-color: rgba(31,178,107,.65); }
+.choice.wrong{ border-color: rgba(229,72,72,.65); }
+
+.controls{
+  display: flex; justify-content: space-between; align-items: center;
+}
+button.primary, button.ghost{
+  font-size: 15px; padding: 10px 14px; border-radius: 12px; cursor: pointer;
+}
+button.primary{
+  background: var(--brand); color: #fff; border: none;
+  box-shadow: 0 8px 16px rgba(43,108,255,.25);
+}
+button.ghost{
+  background: transparent; border: 1px solid rgba(127,140,169,.4); color: var(--muted);
+}
+button:disabled{ opacity: .5; cursor: not-allowed; }
+
+.result{
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  text-align: center;
+}
+
+.sr-only{
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}

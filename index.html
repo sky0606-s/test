@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>画像4択クイズ（50問ランダム）</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>画像4択クイズ</h1>
+    <div class="meta">
+      <span id="progress">0 / 50</span>
+      <span id="score">正解 0</span>
+    </div>
+  </header>
+
+  <main class="app">
+    <section class="image-wrap">
+      <img id="questionImage" src="" alt="問題画像" />
+      <div id="markOverlay" aria-hidden="true"></div>
+    </section>
+
+    <section class="choices" id="choices" aria-label="選択肢"></section>
+
+    <div class="controls">
+      <button id="skipBtn" class="ghost" type="button" aria-label="次の問題へ（スキップ）">次へ ▶</button>
+      <div id="live" class="sr-only" aria-live="polite"></div>
+    </div>
+
+    <section id="result" class="result" hidden>
+      <h2>終了！</h2>
+      <p><strong id="finalScore"></strong></p>
+      <button id="restartBtn" class="primary" type="button">もう一度</button>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <small>© 2025 Quiz App</small>
+  </footer>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
